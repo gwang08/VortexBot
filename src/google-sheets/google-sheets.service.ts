@@ -28,6 +28,39 @@ export class GoogleSheetsService implements OnModuleInit {
 
     this.sheets = google.sheets({ version: 'v4', auth });
     this.logger.log('Google Sheets service initialized');
+    this.ensureHeaderRow();
+  }
+
+  /** Add header row if sheet is empty */
+  private async ensureHeaderRow(): Promise<void> {
+    if (!this.sheets) return;
+    try {
+      const sheetName = await this.getFirstSheetName();
+      const res = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: `'${sheetName}'!A1:F1`,
+      });
+      if (!res.data.values || res.data.values.length === 0) {
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.spreadsheetId,
+          range: `'${sheetName}'!A1:F1`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [['Timestamp', 'User ID', 'Username', 'Email', 'Flow', 'Action']] },
+        });
+        this.logger.log('Header row added to Google Sheet');
+      }
+    } catch (error) {
+      this.logger.error('Failed to ensure header row', error);
+    }
+  }
+
+  /** Get the first sheet name dynamically */
+  private async getFirstSheetName(): Promise<string> {
+    const meta = await this.sheets.spreadsheets.get({
+      spreadsheetId: this.spreadsheetId,
+      fields: 'sheets.properties.title',
+    });
+    return meta.data.sheets?.[0]?.properties?.title ?? 'Sheet1';
   }
 
   /** Append a contact/email row to the first sheet */
@@ -46,12 +79,7 @@ export class GoogleSheetsService implements OnModuleInit {
     const row = [timestamp, String(data.userId), displayName, data.email ?? '', data.flow, data.action];
 
     try {
-      // Get the first sheet name dynamically
-      const sheetMeta = await this.sheets.spreadsheets.get({
-        spreadsheetId: this.spreadsheetId,
-        fields: 'sheets.properties.title',
-      });
-      const sheetName = sheetMeta.data.sheets?.[0]?.properties?.title ?? 'Sheet1';
+      const sheetName = await this.getFirstSheetName();
 
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,

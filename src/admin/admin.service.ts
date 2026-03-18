@@ -33,7 +33,7 @@ export class AdminService {
     await this.googleSheetsService.appendRow({
       userId,
       username: username || firstName,
-      flow: 'N/A',
+      flow: 'General',
       action: 'Contact',
     });
   }
