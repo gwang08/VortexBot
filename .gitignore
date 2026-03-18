@@ -46,6 +46,8 @@ pnpm-lock.yaml
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+*.json.key
+*-credentials.json
 
 # vercel
 .vercel
