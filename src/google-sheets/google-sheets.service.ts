@@ -46,9 +46,16 @@ export class GoogleSheetsService implements OnModuleInit {
     const row = [timestamp, String(data.userId), displayName, data.email ?? '', data.flow, data.action];
 
     try {
+      // Get the first sheet name dynamically
+      const sheetMeta = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId,
+        fields: 'sheets.properties.title',
+      });
+      const sheetName = sheetMeta.data.sheets?.[0]?.properties?.title ?? 'Sheet1';
+
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,
-        range: 'Sheet1!A:F',
+        range: `'${sheetName}'!A:F`,
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [row] },
       });
