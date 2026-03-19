@@ -35,7 +35,7 @@ export class OnboardingScene {
       currentStep: 'Welcome - asking profit target',
       userName: this.botService.getDisplayName(ctx),
       templateText:
-        'Hello first of all, how much profit you wanna generate each month with VortexBot? (In dollars)',
+        'Hello first of all, how much profit you wanna generate each month with BMR AI Trading ? (In dollars)',
     });
     await ctx.reply(text);
   }
