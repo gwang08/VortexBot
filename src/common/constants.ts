@@ -5,7 +5,7 @@ export const PUPRIME_SIGNUP_LINK =
   'https://puprime.pro/forex-trading-account/?cs=bmrcopytrade';
 
 // IB Code for existing PuPrime users
-export const IB_CODE = 'hmZDV5Xa';
+export const IB_CODE = 'bmrmaster';
 
 // Video guide URLs
 export const VIDEO_GUIDES = {
