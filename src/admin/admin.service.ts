@@ -46,9 +46,9 @@ export class AdminService {
     }
   }
 
-  /** Extract userId from forwarded message text */
+  /** Extract userId from forwarded message text - matches both "(ID: xxx)" and "User ID: xxx" */
   extractUserIdFromMessage(text: string): number | null {
-    const match = text.match(/\(ID:\s*(\d+)\)/);
+    const match = text.match(/\(ID:\s*(\d+)\)/) || text.match(/User ID:\s*(\d+)/);
     return match ? parseInt(match[1], 10) : null;
   }
 

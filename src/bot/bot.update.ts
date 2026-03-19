@@ -1,4 +1,4 @@
-import { Update, Start, On, Ctx } from 'nestjs-telegraf';
+import { Update, Start, Use, Ctx } from 'nestjs-telegraf';
 import type { BotContext } from '../common/interfaces/session.interface';
 import { BotService } from './bot.service';
 import { AdminService } from '../admin/admin.service';
@@ -10,29 +10,24 @@ export class BotUpdate {
     private adminService: AdminService,
   ) {}
 
-  @Start()
-  async onStart(@Ctx() ctx: BotContext) {
-    try {
-      await ctx.scene.leave();
-    } catch {}
-
-    ctx.session.profitTarget = undefined;
-    ctx.session.selectedFlow = undefined;
-    ctx.session.email = undefined;
-    ctx.session.awaitingEmail = false;
-    ctx.session.awaitingProfitTarget = false;
-    ctx.session.currentStep = undefined;
-
-    await ctx.scene.enter('onboarding');
-  }
-
-  @On('text')
-  async onText(@Ctx() ctx: BotContext) {
+  /**
+   * Middleware runs BEFORE scenes - intercepts admin replies
+   * and user free-text messages before scene handlers catch them.
+   */
+  @Use()
+  async middleware(@Ctx() ctx: BotContext, next: () => Promise<void>) {
     const message = (ctx.message as any)?.text;
-    if (!message) return;
-
     const chatId = ctx.chat?.id;
-    if (!chatId) return;
+
+    // Only intercept text messages
+    if (!message || !chatId) {
+      return next();
+    }
+
+    // Let /start and other commands pass through
+    if (message.startsWith('/')) {
+      return next();
+    }
 
     // Admin replying to a forwarded user message
     if (this.adminService.isAdmin(chatId)) {
@@ -53,9 +48,30 @@ export class BotUpdate {
       return;
     }
 
-    // User sending message → forward to admin
+    // Check if user is in an active scene - let scene handle it
+    if (ctx.session?.currentStep || ctx.session?.awaitingEmail || ctx.session?.awaitingProfitTarget) {
+      return next();
+    }
+
+    // User free-text (not in scene) → forward to admin
     const displayName = this.botService.getDisplayName(ctx);
     await this.adminService.forwardUserMessage(ctx.from!.id, displayName, message);
     await ctx.reply('✅ Your message has been sent to admin. Please wait for a response!');
+  }
+
+  @Start()
+  async onStart(@Ctx() ctx: BotContext) {
+    try {
+      await ctx.scene.leave();
+    } catch {}
+
+    ctx.session.profitTarget = undefined;
+    ctx.session.selectedFlow = undefined;
+    ctx.session.email = undefined;
+    ctx.session.awaitingEmail = false;
+    ctx.session.awaitingProfitTarget = false;
+    ctx.session.currentStep = undefined;
+
+    await ctx.scene.enter('onboarding');
   }
 }
