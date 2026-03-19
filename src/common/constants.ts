@@ -2,54 +2,54 @@ import * as path from 'path';
 
 // PuPrime signup link
 export const PUPRIME_SIGNUP_LINK =
-  'https://www.puprime.com/campaign?cs=BMRMasterTrader';
+  'https://puprime.pro/forex-trading-account/?cs=bmrcopytrade';
 
 // IB Code for existing PuPrime users
 export const IB_CODE = 'hmZDV5Xa';
 
 // Video guide URLs
 export const VIDEO_GUIDES = {
-  openAccount: 'https://youtu.be/_nCn1NHuLHI',
-  idAuth: 'https://youtu.be/jJ6IFPOjGDE',
-  addressVerify: 'https://youtu.be/XhDtV0h_tqo',
-  usePromotions: 'https://youtu.be/4Z3q9yFRdPA',
-  depositCrypto: 'https://youtu.be/pG1k2xPpzRQ',
-  depositCreditCard: 'https://youtu.be/5LYD7DYW3tA',
-  depositEWallet: 'https://youtu.be/VYlr2KPg19w',
-  depositLocalBank: 'https://youtu.be/P2dtW_ccXMs',
-  depositIntlBank: 'https://youtu.be/wQD1dWhuaqA',
-  withdrawCrypto: 'https://youtu.be/pykRHpOsyqA',
-  withdrawCreditCard: 'https://youtu.be/NakNND_T_ZA',
-  withdrawEWallet: 'https://youtu.be/ZZ9zWmWcCKo',
-  withdrawLocalBank: 'https://youtu.be/VNQyoTr7bfQ',
-  withdrawIntlBank: 'https://youtu.be/R48576DzGqo',
+  openAccount: 'https://youtu.be/VUeNnUB3H-o',
+  idAuth: 'https://youtu.be/z5njeC7gMBQ',
+  addressVerify: 'https://youtu.be/DnSmbl0qIAw',
+  usePromotions: 'https://youtu.be/eI37GTcC7Lo',
+  depositCrypto: 'https://youtu.be/mx9SljaMA5Q',
+  depositCreditCard: 'https://youtu.be/lk8NUU2YiwU',
+  depositEWallet: 'https://youtu.be/riuYXG0eZCs',
+  depositLocalBank: 'https://youtu.be/p2hD1mI0rMo',
+  depositIntlBank: 'https://youtu.be/W86fkYNEsrQ',
+  withdrawCrypto: 'https://youtu.be/6TSqmaw_13o',
+  withdrawCreditCard: 'https://youtu.be/LX4WmhdfToo',
+  withdrawEWallet: 'https://youtu.be/WjUpZ30puz8',
+  withdrawLocalBank: 'https://youtu.be/ScWcdubn7ZE',
+  withdrawIntlBank: 'https://youtu.be/FocCgOkemmM',
 };
 
 // Text templates for account creation (shared between CopyTrading & Signals)
-export const ACCOUNT_CREATION_TEXT = `Create account Pu Prime follow this link: ${PUPRIME_SIGNUP_LINK}
+export const ACCOUNT_CREATION_TEXT = `Create account PU Prime follow this link: ${PUPRIME_SIGNUP_LINK}
 
 Video GUIDE:
 
 📣 Opening A Live Account PuPrime: ${VIDEO_GUIDES.openAccount}
-💋 ID Authentication  ${VIDEO_GUIDES.idAuth}
-⭐️ Address Verification  ${VIDEO_GUIDES.addressVerify}
-🎲 Use Promotions ${VIDEO_GUIDES.usePromotions}
+💋 ID Authentication: ${VIDEO_GUIDES.idAuth}
+⭐️ Address Verification: ${VIDEO_GUIDES.addressVerify}
+🎲 Use Promotions: ${VIDEO_GUIDES.usePromotions}
 
-If you already have account Pu Prime Press Button Below`;
+If you already have account PU Prime Press Button Below`;
 
 // Deposit/withdrawal video guide text (shared)
 export const DEPOSIT_VIDEO_GUIDE_TEXT = `Video GUIDE:
 
-🔪 Deposit With Crypto  ${VIDEO_GUIDES.depositCrypto}
-⭐️ Deposit By Credit Card   ${VIDEO_GUIDES.depositCreditCard}
-💸 Deposit With E-Wallet ${VIDEO_GUIDES.depositEWallet}
-🍒 Deposit With Local Bank   ${VIDEO_GUIDES.depositLocalBank}
-💝 Deposit By International Bank    ${VIDEO_GUIDES.depositIntlBank}
-🍀 Crypto Withdrawals  ${VIDEO_GUIDES.withdrawCrypto}
-🔺 Withdraw Money By Credit Card   ${VIDEO_GUIDES.withdrawCreditCard}
-🟫 Withdraw Funds Using E-Wallet    ${VIDEO_GUIDES.withdrawEWallet}
-💠 Withdraw Funds Using Local Bank   ${VIDEO_GUIDES.withdrawLocalBank}
-💻 Withdrawal by International Bank   ${VIDEO_GUIDES.withdrawIntlBank}`;
+🔪 Deposit With Crypto: ${VIDEO_GUIDES.depositCrypto}
+⭐️ Deposit By Credit Card: ${VIDEO_GUIDES.depositCreditCard}
+💸 Deposit With E-Wallet: ${VIDEO_GUIDES.depositEWallet}
+🍒 Deposit With Local Bank: ${VIDEO_GUIDES.depositLocalBank}
+💝 Deposit By International Bank: ${VIDEO_GUIDES.depositIntlBank}
+🍀 Crypto Withdrawals: ${VIDEO_GUIDES.withdrawCrypto}
+🔺 Withdraw Money By Credit Card: ${VIDEO_GUIDES.withdrawCreditCard}
+🟫 Withdraw Funds Using E-Wallet: ${VIDEO_GUIDES.withdrawEWallet}
+💠 Withdraw Funds Using Local Bank: ${VIDEO_GUIDES.withdrawLocalBank}
+💻 Withdrawal by International Bank: ${VIDEO_GUIDES.withdrawIntlBank}`;
 
 // Image paths (relative to project root)
 const PUBLIC = path.join(process.cwd(), 'public');
