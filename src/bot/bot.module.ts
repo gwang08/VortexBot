@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { BotUpdate } from './bot.update';
 import { BotService } from './bot.service';
-import { GeminiModule } from '../gemini/gemini.module';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
-  imports: [GeminiModule],
+  imports: [AdminModule],
   providers: [BotUpdate, BotService],
   exports: [BotService],
 })

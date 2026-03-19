@@ -18,6 +18,40 @@ export class AdminService {
     this.adminChatId = this.configService.get<string>('ADMIN_CHAT_ID') ?? '';
   }
 
+  /** Check if a message is from the admin */
+  isAdmin(chatId: number): boolean {
+    return String(chatId) === this.adminChatId;
+  }
+
+  /** Forward user message to admin for live chat */
+  async forwardUserMessage(userId: number, username: string, text: string): Promise<void> {
+    const displayName = username ? `@${username}` : `ID:${userId}`;
+    const message = `💬 Message from ${displayName} (ID: ${userId}):\n\n"${text}"\n\n↩️ Reply this message to respond.`;
+
+    try {
+      await this.bot.telegram.sendMessage(this.adminChatId, message);
+    } catch (error) {
+      this.logger.error('Failed to forward user message to admin', error);
+    }
+  }
+
+  /** Send admin reply back to user */
+  async sendReplyToUser(userId: number, text: string): Promise<boolean> {
+    try {
+      await this.bot.telegram.sendMessage(userId, `💬 Admin:\n${text}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send reply to user ${userId}`, error);
+      return false;
+    }
+  }
+
+  /** Extract userId from forwarded message text */
+  extractUserIdFromMessage(text: string): number | null {
+    const match = text.match(/\(ID:\s*(\d+)\)/);
+    return match ? parseInt(match[1], 10) : null;
+  }
+
   async notifyAdmin(userId: number, username?: string, firstName?: string): Promise<void> {
     const displayName = username ? `@${username}` : firstName || `ID:${userId}`;
     const message = `🔔 New contact request!\n\nFrom: ${displayName}\nUser ID: ${userId}\n\nPlease reach out to them directly.`;
@@ -29,7 +63,6 @@ export class AdminService {
       this.logger.error('Failed to notify admin', error);
     }
 
-    // Log to Google Sheets
     await this.googleSheetsService.appendRow({
       userId,
       username: username || firstName,
@@ -48,7 +81,6 @@ export class AdminService {
       this.logger.error('Failed to notify admin about email', error);
     }
 
-    // Log to Google Sheets
     await this.googleSheetsService.appendRow({
       userId,
       username,
