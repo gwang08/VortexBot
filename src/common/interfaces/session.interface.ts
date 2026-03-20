@@ -8,6 +8,8 @@ export interface BotSession extends Scenes.WizardSession {
   awaitingEmail?: boolean;
   awaitingProfitTarget?: boolean;
   awaitingLinkSource?: boolean;
+  isVip?: boolean;
+  inAiChat?: boolean;
 }
 
 export interface BotContext extends Context {

@@ -89,6 +89,8 @@ export const CALLBACKS = {
   copytrading: 'select_copytrading',
   signals: 'select_signals',
   contactAdmin: 'contact_admin',
+  vipSupport: 'vip_support',
+  aiSupport: 'ai_support',
   alreadyHavePuPrime: 'ct_already_puprime',
   ctNextStep2: 'ct_next_step2',
   ctNextStep3: 'ct_next_step3',

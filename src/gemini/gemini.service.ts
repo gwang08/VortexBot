@@ -11,8 +11,7 @@ export class GeminiService {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     if (apiKey) {
       const genAI = new GoogleGenerativeAI(apiKey);
-      // TODO: Change to 'gemini-2.0-flash' when ready for production
-this.model = genAI.getGenerativeModel({ model: 'gemini-disabled' });
+      this.model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     }
   }
 
@@ -128,6 +127,44 @@ RULES:
       return result.response.text() || templateText;
     } catch {
       return templateText;
+    }
+  }
+
+  /**
+   * AI support chat - handles user questions about BMR Trading services.
+   * For users with deposit < $5k who click Support button.
+   */
+  async chatSupport(userMessage: string, userName?: string): Promise<string> {
+    if (!this.model) {
+      return 'Our support team will get back to you soon. Type /human to talk to a real person.';
+    }
+
+    try {
+      const prompt = `You are BMR Trading's AI support assistant. You help users with questions about CopyTrading and Signals services on PU Prime broker.
+
+ABOUT BMR TRADING:
+- Provides CopyTrading (auto copy trades, 50-80% monthly returns potential) and Signals (trading signals group)
+- Uses PU Prime as broker platform
+- CopyTrading: user deposits funds, trades are copied automatically from pro traders
+- Signals: user joins signal group, receives buy/sell signals, trades manually
+- Both services are currently FREE
+- Signup link: https://puprime.pro/forex-trading-account/?cs=bmrcopytrade
+
+RULES:
+- Be friendly, professional, and concise (2-4 sentences)
+- NEVER guarantee profits or specific returns. Always mention trading involves risk
+- Only answer questions about BMR Trading, CopyTrading, Signals, PU Prime, forex trading basics
+- For off-topic questions (crypto, stocks, personal advice, etc): politely decline and redirect to trading topics
+- If you can't answer something, suggest typing /human to talk to a real support agent
+- Never make up information you're not sure about
+
+User "${userName || 'trader'}" asks: "${userMessage}"`;
+
+      const result = await this.model.generateContent(prompt);
+      return result.response.text() || 'Type /human to talk to a real support agent.';
+    } catch (error) {
+      this.logger.error('Gemini chat support error', error);
+      return 'Sorry, I had a technical issue. Type /human to talk to a real support agent.';
     }
   }
 

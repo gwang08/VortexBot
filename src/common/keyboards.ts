@@ -1,12 +1,20 @@
 import { Markup } from 'telegraf';
 import { CALLBACKS } from './constants';
 
-// Main menu after profit target
-export const mainMenuKeyboard = () =>
+// Main menu after profit target - VIP (deposit >= $5k)
+export const mainMenuVipKeyboard = () =>
   Markup.inlineKeyboard([
     [Markup.button.callback('📊 CopyTrading', CALLBACKS.copytrading)],
     [Markup.button.callback('📡 Signals', CALLBACKS.signals)],
-    [Markup.button.callback('💬 Contact Admin', CALLBACKS.contactAdmin)],
+    [Markup.button.callback('💎 VIP Support', CALLBACKS.vipSupport)],
+  ]);
+
+// Main menu after profit target - Standard (deposit < $5k)
+export const mainMenuStandardKeyboard = () =>
+  Markup.inlineKeyboard([
+    [Markup.button.callback('📊 CopyTrading', CALLBACKS.copytrading)],
+    [Markup.button.callback('📡 Signals', CALLBACKS.signals)],
+    [Markup.button.callback('💬 Support', CALLBACKS.aiSupport)],
   ]);
 
 // CopyTrading Step 1

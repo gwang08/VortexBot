@@ -1,7 +1,7 @@
 import { Scene, SceneEnter, On, Action, Command } from 'nestjs-telegraf';
 import type { BotContext } from '../../common/interfaces/session.interface';
 import { CALLBACKS } from '../../common/constants';
-import { mainMenuKeyboard } from '../../common/keyboards';
+import { mainMenuVipKeyboard, mainMenuStandardKeyboard } from '../../common/keyboards';
 import { GeminiService } from '../../gemini/gemini.service';
 import { AdminService } from '../../admin/admin.service';
 import { BotService } from '../../bot/bot.service';
@@ -63,11 +63,29 @@ export class OnboardingScene {
       ctx.session.awaitingProfitTarget = false;
       ctx.session.currentStep = 'onboarding:main_menu';
 
+      // Calculate deposit and determine VIP status (deposit >= $5k)
+      const minDeposit = Math.round(amount / 0.8);
+      ctx.session.isVip = minDeposit >= 5000;
+
       const recommendation = await this.geminiService.generateDepositRecommendation(
         amount,
         this.botService.getDisplayName(ctx),
       );
-      await this.botService.sendWithKeyboard(ctx, recommendation, mainMenuKeyboard());
+      const keyboard = ctx.session.isVip ? mainMenuVipKeyboard() : mainMenuStandardKeyboard();
+      await this.botService.sendWithKeyboard(ctx, recommendation, keyboard);
+      return;
+    }
+
+    // User in AI chat mode → respond with Gemini
+    if (ctx.session.inAiChat) {
+      if (message === '/human') {
+        ctx.session.inAiChat = false;
+        await this.adminService.notifyAdmin(ctx.from!.id, ctx.from?.username, ctx.from?.first_name);
+        await ctx.reply("✅ You've been connected to a human agent. We'll get back to you shortly!");
+        return;
+      }
+      const response = await this.geminiService.chatSupport(message, this.botService.getDisplayName(ctx));
+      await ctx.reply(response);
       return;
     }
 
@@ -94,17 +112,25 @@ export class OnboardingScene {
   @Action(CALLBACKS.contactAdmin)
   async onContactAdmin(ctx: BotContext) {
     await ctx.answerCbQuery();
-    await this.adminService.notifyAdmin(
-      ctx.from!.id,
-      ctx.from?.username,
-      ctx.from?.first_name,
-    );
+    await this.adminService.notifyAdmin(ctx.from!.id, ctx.from?.username, ctx.from?.first_name);
+    await ctx.reply("Thanks! An admin has been notified. We'll get back to you here.");
+  }
 
-    const text = await this.geminiService.generateResponse({
-      currentStep: 'Contact admin confirmation',
-      userName: this.botService.getDisplayName(ctx),
-      templateText: "Thanks! An admin has been notified. We'll get back to you here.",
-    });
-    await ctx.reply(text);
+  @Action(CALLBACKS.vipSupport)
+  async onVipSupport(ctx: BotContext) {
+    await ctx.answerCbQuery();
+    await this.adminService.notifyAdmin(ctx.from!.id, ctx.from?.username, ctx.from?.first_name);
+    await ctx.reply(
+      '💎 VIP Support\n\nYou\'ve been assigned a dedicated account manager.\n\n👤 Contact: @Kenfintech\n\nFeel free to reach out directly for personalized 1-on-1 assistance!',
+    );
+  }
+
+  @Action(CALLBACKS.aiSupport)
+  async onAiSupport(ctx: BotContext) {
+    await ctx.answerCbQuery();
+    ctx.session.inAiChat = true;
+    await ctx.reply(
+      '💬 AI Support\n\nHi! I\'m BMR Trading\'s AI assistant. Ask me anything about:\n\n• CopyTrading & Signals\n• PU Prime account setup\n• Deposits & withdrawals\n• Trading basics\n\nType /human anytime to talk to a real person.',
+    );
   }
 }

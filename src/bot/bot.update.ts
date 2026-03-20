@@ -103,8 +103,8 @@ export class BotUpdate {
       return;
     }
 
-    // User is actively inputting text (email/profit) → let scene handle it
-    if (ctx.session?.awaitingEmail || ctx.session?.awaitingProfitTarget) {
+    // User is actively inputting text (email/profit) or in AI chat → let scene handle it
+    if (ctx.session?.awaitingEmail || ctx.session?.awaitingProfitTarget || ctx.session?.inAiChat) {
       return callNext();
     }
 
@@ -126,6 +126,8 @@ export class BotUpdate {
     ctx.session.awaitingEmail = false;
     ctx.session.awaitingProfitTarget = false;
     ctx.session.currentStep = undefined;
+    ctx.session.isVip = undefined;
+    ctx.session.inAiChat = false;
 
     // Extract deep link source from /start ref_<source>
     const startPayload = (ctx.message as any)?.text?.split(' ')[1] ?? '';
