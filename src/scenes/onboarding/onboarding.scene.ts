@@ -128,7 +128,7 @@ export class OnboardingScene {
     await ctx.answerCbQuery();
     await this.adminService.notifyAdmin(ctx.from!.id, ctx.from?.username, ctx.from?.first_name);
     await ctx.reply(
-      '💎 VIP Support\n\nYou\'ve been assigned a dedicated account manager.\n\n👤 Contact: @Kenfintech\n\nFeel free to reach out directly for personalized 1-on-1 assistance!',
+      '💎 VIP Support\n\nYou\'ve been assigned a dedicated account manager.\n\n👤 Contact: @Vitaperry for personalized 1-on-1 assistance!',
     );
   }
 
