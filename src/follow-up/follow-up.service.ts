@@ -71,7 +71,7 @@ export class FollowUpService implements OnModuleInit {
         {
           reply_markup: {
             inline_keyboard: [
-              [{ text: '💰 Deposit Now', url: 'https://www.puprime.com/campaign?cs=BMRMasterTrader' }],
+              [{ text: '💰 Deposit Now', url: 'https://puprime.pro/forex-trading-account/?cs=bmrcopytrade' }],
             ],
           },
         },
@@ -89,7 +89,7 @@ export class FollowUpService implements OnModuleInit {
         {
           reply_markup: {
             inline_keyboard: [
-              [{ text: '🚀 Start Now', url: 'https://www.puprime.com/campaign?cs=BMRMasterTrader' }],
+              [{ text: '🚀 Start Now', url: 'https://puprime.pro/forex-trading-account/?cs=bmrcopytrade' }],
             ],
           },
         },
