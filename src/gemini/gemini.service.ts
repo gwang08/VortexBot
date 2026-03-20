@@ -15,128 +15,35 @@ export class GeminiService {
     }
   }
 
-  /**
-   * Generate a natural language response using Gemini.
-   * Used for ALL bot responses to make conversations feel natural and persuasive.
-   */
-  async generateResponse(context: {
-    userMessage?: string;
-    currentStep: string;
-    userName?: string;
-    profitTarget?: number;
-    templateText: string;
-  }): Promise<string> {
-    if (!this.model) {
-      // Fallback to template if no Gemini key
-      return context.templateText;
-    }
-
-    try {
-      const systemPrompt = `You are VortexBot, a friendly and professional trading assistant for BMR Master Trade.
-Your job is to guide users through setting up CopyTrading or Signals services with PuPrime broker.
-
-IMPORTANT RULES:
-- Keep responses concise (2-4 sentences max for conversational parts)
-- Always maintain the exact links, IB codes, video URLs from the template - NEVER change them
-- Be enthusiastic but professional about trading opportunities
-- If user asks off-topic questions, briefly answer then redirect to current step
-- Use natural, conversational English
-- Keep all emojis from the template text
-- NEVER use markdown formatting (no **, no *, no #, no backticks). Use plain text only.
-- The template text contains the REQUIRED information that MUST be included in your response
-- You can rephrase the template naturally but MUST keep all URLs, codes, and key data intact
-
-Current context:
-- User name: ${context.userName || 'trader'}
-- Current step: ${context.currentStep}
-- User's profit target: ${context.profitTarget ? '$' + context.profitTarget + '/month' : 'not set yet'}
-${context.userMessage ? `- User just said: "${context.userMessage}"` : ''}
-
-Template text to deliver (keep all links/data, rephrase naturally):
-${context.templateText}`;
-
-      const result = await this.model.generateContent(systemPrompt);
-      const response = result.response.text();
-      return response || context.templateText;
-    } catch (error) {
-      this.logger.error('Gemini API error, falling back to template', error);
-      return context.templateText;
-    }
+  /** Return template text directly - no AI needed */
+  async generateResponse(context: { templateText: string }): Promise<string> {
+    return context.templateText;
   }
 
-  /**
-   * Handle unexpected free text from user when they should be clicking buttons.
-   */
-  async handleFreeText(context: {
-    userMessage: string;
-    currentStep: string;
-    userName?: string;
-    availableActions: string[];
-  }): Promise<string> {
-    if (!this.model) {
-      return `I understand! Right now you're at: ${context.currentStep}. Please use the buttons below to continue.`;
+  /** Return deposit recommendation as formatted text */
+  async generateDepositRecommendation(profitTarget: number, _userName?: string, isVip?: boolean): Promise<string> {
+    const minDeposit = Math.round(profitTarget / 0.8);
+    const maxDeposit = Math.round(profitTarget / 0.5);
+    const recommended = Math.min(profitTarget, maxDeposit);
+
+    let text = `With your target of $${profitTarget.toLocaleString()}/month, we recommend starting with a deposit around $${minDeposit.toLocaleString()} - $${recommended.toLocaleString()}.
+
+📊 Example: $${recommended.toLocaleString()} deposit can generate $${minDeposit.toLocaleString()} - $${maxDeposit.toLocaleString()}/month (50-80%)
+
+So what services you wanna do with us?
+
+📊 CopyTrading → Generate 50-80% Monthly automatically
+
+📡 SIGNALS → Follow and make unlimited money by yourself, learn Trading - A best High Income Skill in Century`;
+
+    if (isVip) {
+      text += '\n\n💎 With capital over $5,000, you qualify for VIP support! Tap VIP Support below for personalized 1-on-1 assistance.';
     }
 
-    try {
-      const prompt = `You are VortexBot, a trading assistant. The user sent a free-text message instead of clicking a button.
-
-User: "${context.userMessage}"
-Current step: ${context.currentStep}
-Available actions (buttons): ${context.availableActions.join(', ')}
-
-Briefly acknowledge what the user said (1 sentence), then guide them to use the available buttons to continue. Keep it friendly and short.`;
-
-      const result = await this.model.generateContent(prompt);
-      return result.response.text() || `Please use the buttons below to continue.`;
-    } catch {
-      return `Please use the buttons below to continue.`;
-    }
+    return text;
   }
 
-  /**
-   * Generate deposit recommendation text based on user's profit target.
-   * Logic: recommend within their budget, show what they can earn.
-   */
-  async generateDepositRecommendation(profitTarget: number, userName?: string, isVip?: boolean): Promise<string> {
-    const templateText = this.getDepositTemplate(profitTarget, isVip);
-
-    if (!this.model) {
-      return templateText;
-    }
-
-    try {
-      const prompt = `You are VortexBot, a friendly trading assistant. Generate a deposit recommendation.
-
-User wants to make $${profitTarget}/month profit.
-User name: ${userName || 'trader'}
-
-CopyTrading generates 50-80% monthly returns.
-Signals can generate even more but requires active trading.
-
-RULES:
-- Recommend a deposit amount WITHIN or BELOW their target (don't push them to deposit more than they're comfortable with)
-- Be encouraging and realistic
-- Show the math briefly: with $X deposit, CopyTrading can generate $Y-$Z/month (50-80%)
-- Then ask: "So what services you wanna do with us SIGNALS or CopyTrading?"
-- Include these descriptions:
-  CopyTrading -> Generate 50-80% Monthly
-  SIGNALS -> Follow and you can make unlimited money by yourself, learn Trading - A best High Income Skill in Century
-- Keep it under 6 sentences total
-- Be natural and conversational
-- NEVER use markdown formatting (no **, no *, no #, no backticks). Use plain text only.
-${isVip ? '- The user is a VIP (capital over $5,000). At the end of your response, add: "With capital over $5,000, you qualify for VIP support! Tap VIP Support below for personalized 1-on-1 assistance."' : ''}`;
-
-      const result = await this.model.generateContent(prompt);
-      return result.response.text() || templateText;
-    } catch {
-      return templateText;
-    }
-  }
-
-  /**
-   * AI support chat - handles user questions about BMR Trading services.
-   * For users with deposit < $5k who click Support button.
-   */
+  /** AI support chat - only Gemini usage, for users who click Support */
   async chatSupport(userMessage: string, userName?: string): Promise<string> {
     if (!this.model) {
       return 'Our support team will get back to you soon. Type /human to talk to a real person.';
@@ -174,13 +81,14 @@ VIDEO GUIDES AVAILABLE:
 - Withdrawal: Crypto, Credit Card, E-Wallet, Local Bank, International Bank
 
 RULES:
-- Be friendly, professional, and concise (2-4 sentences)
+- Be friendly, professional, and concise (2-4 sentences max)
 - NEVER guarantee profits or specific returns. Always mention trading involves risk
 - Only answer questions about BMR Trading, CopyTrading, Signals, PU Prime, forex trading basics
 - For off-topic questions (crypto, stocks, personal advice, etc): politely decline and redirect to trading topics
 - If you can't answer something, suggest typing /human to talk to a real support agent
 - Never make up information you're not sure about
 - NEVER use markdown formatting (no **, no *, no #, no backticks). Use plain text only.
+- Use line breaks between paragraphs for readability
 - Use emoji sparingly for friendliness
 
 User "${userName || 'trader'}" asks: "${userMessage}"`;
@@ -191,26 +99,5 @@ User "${userName || 'trader'}" asks: "${userMessage}"`;
       this.logger.error('Gemini chat support error', error);
       return 'Sorry, I had a technical issue. Type /human to talk to a real support agent.';
     }
-  }
-
-  /** Fallback template for deposit recommendation */
-  private getDepositTemplate(profitTarget: number, isVip?: boolean): string {
-    // Calculate recommended deposit (profit = 50-80% of deposit)
-    const minDeposit = Math.round(profitTarget / 0.8);
-    const maxDeposit = Math.round(profitTarget / 0.5);
-    const recommended = Math.min(profitTarget, maxDeposit);
-
-    const base = `With your target of $${profitTarget.toLocaleString()}/month, we recommend starting with a deposit around $${minDeposit.toLocaleString()} - $${recommended.toLocaleString()}. With CopyTrading, you can generate 50-80% monthly returns on your investment.
-
-So what services you wanna do with us SIGNALS or CopyTrading?
-
-CopyTrading -> Generate 50-80% Monthly
-
-SIGNALS -> Follow and you can make unlimited money by yourself, learn Trading - A best High Income Skill in Century`;
-
-    if (isVip) {
-      return base + '\n\nWith capital over $5,000, you qualify for VIP support! Tap VIP Support below for personalized 1-on-1 assistance.';
-    }
-    return base;
   }
 }

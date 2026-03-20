@@ -35,13 +35,7 @@ export class OnboardingScene {
     ctx.session.awaitingProfitTarget = true;
     ctx.session.currentStep = 'onboarding:profit_question';
 
-    const text = await this.geminiService.generateResponse({
-      currentStep: 'Welcome - asking profit target',
-      userName: this.botService.getDisplayName(ctx),
-      templateText:
-        'Hello first of all, how much profit you wanna generate each month with BMR AI Trading ? (In dollars)',
-    });
-    await ctx.reply(text);
+    await ctx.reply('Hello first of all, how much profit you wanna generate each month with BMR AI Trading? (In dollars)');
   }
 
   @On('text')
@@ -53,13 +47,7 @@ export class OnboardingScene {
       const amount = parseFloat(message.replace(/[^0-9.]/g, ''));
 
       if (isNaN(amount) || amount <= 0) {
-        const response = await this.geminiService.handleFreeText({
-          userMessage: message,
-          currentStep: 'Waiting for profit target amount',
-          userName: this.botService.getDisplayName(ctx),
-          availableActions: ['Type a dollar amount (e.g. 1000, 5000)'],
-        });
-        await ctx.reply(response);
+        await ctx.reply('Please enter a valid dollar amount (e.g. 1000, 5000)');
         return;
       }
 
