@@ -71,13 +71,10 @@ export class OnboardingScene {
       return;
     }
 
-    const response = await this.geminiService.handleFreeText({
-      userMessage: message,
-      currentStep: 'Main menu - choosing between CopyTrading, Signals, or Contact Admin',
-      userName: this.botService.getDisplayName(ctx),
-      availableActions: ['CopyTrading', 'Signals', 'Contact Admin'],
-    });
-    await ctx.reply(response);
+    // User typed free text at button step → forward to admin
+    const displayName = this.botService.getDisplayName(ctx);
+    await this.adminService.forwardUserMessage(ctx.from!.id, displayName, message);
+    await ctx.reply('✅ Your message has been sent to admin. Please wait for a response!');
   }
 
   @Action(CALLBACKS.copytrading)
