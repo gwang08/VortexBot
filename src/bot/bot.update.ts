@@ -48,6 +48,15 @@ export class BotUpdate {
       return;
     }
 
+    // User replying to a bot message → forward to admin as live chat
+    const replyToBot = (ctx.message as any)?.reply_to_message;
+    if (replyToBot && replyToBot.from?.is_bot) {
+      const displayName = this.botService.getDisplayName(ctx);
+      await this.adminService.forwardUserMessage(ctx.from!.id, displayName, message);
+      await ctx.reply('✅ Your message has been sent to admin. Please wait for a response!');
+      return;
+    }
+
     // Check if user is in an active scene - let scene handle it
     if (ctx.session?.currentStep || ctx.session?.awaitingEmail || ctx.session?.awaitingProfitTarget) {
       return next();
