@@ -19,14 +19,16 @@ export class BotUpdate {
     const message = (ctx.message as any)?.text;
     const chatId = ctx.chat?.id;
 
+    const callNext = typeof next === 'function' ? next : () => Promise.resolve();
+
     // Only intercept text messages
     if (!message || !chatId) {
-      return next();
+      return callNext();
     }
 
     // Let /start and other commands pass through
     if (message.startsWith('/')) {
-      return next();
+      return callNext();
     }
 
     // Admin replying to a forwarded user message
@@ -59,7 +61,7 @@ export class BotUpdate {
 
     // User is actively inputting text (email/profit) → let scene handle it
     if (ctx.session?.awaitingEmail || ctx.session?.awaitingProfitTarget) {
-      return next();
+      return callNext();
     }
 
     // All other free-text (in scene or not) → forward to admin
