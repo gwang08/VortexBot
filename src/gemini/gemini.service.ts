@@ -41,7 +41,8 @@ IMPORTANT RULES:
 - Be enthusiastic but professional about trading opportunities
 - If user asks off-topic questions, briefly answer then redirect to current step
 - Use natural, conversational English
-- Keep all emojis and formatting from the template text
+- Keep all emojis from the template text
+- NEVER use markdown formatting (no **, no *, no #, no backticks). Use plain text only.
 - The template text contains the REQUIRED information that MUST be included in your response
 - You can rephrase the template naturally but MUST keep all URLs, codes, and key data intact
 
@@ -121,7 +122,8 @@ RULES:
   CopyTrading -> Generate 50-80% Monthly
   SIGNALS -> Follow and you can make unlimited money by yourself, learn Trading - A best High Income Skill in Century
 - Keep it under 6 sentences total
-- Be natural and conversational`;
+- Be natural and conversational
+- NEVER use markdown formatting (no **, no *, no #, no backticks). Use plain text only.`;
 
       const result = await this.model.generateContent(prompt);
       return result.response.text() || templateText;
@@ -145,10 +147,30 @@ RULES:
 ABOUT BMR TRADING:
 - Provides CopyTrading (auto copy trades, 50-80% monthly returns potential) and Signals (trading signals group)
 - Uses PU Prime as broker platform
-- CopyTrading: user deposits funds, trades are copied automatically from pro traders
+- CopyTrading: user deposits funds, trades are copied automatically from master traders like "Red Bull X" and "BMR Scalper"
 - Signals: user joins signal group, receives buy/sell signals, trades manually
 - Both services are currently FREE
 - Signup link: https://puprime.pro/forex-trading-account/?cs=bmrcopytrade
+- IB Code (Introducing Broker code): bmrmaster — required for existing PU Prime users to transfer their account under BMR
+- How to change IB: Go to PU Prime app/web → Profile → Transfer IB → Enter code "bmrmaster"
+
+COPYTRADING SETUP STEPS:
+1. Create PU Prime account via signup link (or transfer IB if existing user)
+2. Download PU Prime app, open "New Live Account" → Platform: "Copy Trading", Type: "Standard", Currency: "USD"
+3. After approval, transfer funds from Live account to Copy Trading account
+4. Find master traders "Red Bull X" or "BMR Scalper" in Top Highest Annual Return
+5. Configure: Copy Mode = "Equivalent Used Margin", Risk Management = 95%, turn off Lot Rounding → Submit
+
+SIGNALS SETUP:
+1. Create PU Prime account
+2. Deposit funds
+3. Join BMR signal group to receive buy/sell signals
+4. Follow signals and trade manually
+
+VIDEO GUIDES AVAILABLE:
+- Opening account, ID verification, address verification, using promotions
+- Deposit: Crypto, Credit Card, E-Wallet, Local Bank, International Bank
+- Withdrawal: Crypto, Credit Card, E-Wallet, Local Bank, International Bank
 
 RULES:
 - Be friendly, professional, and concise (2-4 sentences)
@@ -157,6 +179,8 @@ RULES:
 - For off-topic questions (crypto, stocks, personal advice, etc): politely decline and redirect to trading topics
 - If you can't answer something, suggest typing /human to talk to a real support agent
 - Never make up information you're not sure about
+- NEVER use markdown formatting (no **, no *, no #, no backticks). Use plain text only.
+- Use emoji sparingly for friendliness
 
 User "${userName || 'trader'}" asks: "${userMessage}"`;
 
