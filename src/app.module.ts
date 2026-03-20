@@ -27,6 +27,10 @@ const localSession = new LocalSession({
       useFactory: (configService: ConfigService) => ({
         token: configService.get<string>('BOT_TOKEN')!,
         middlewares: [localSession.middleware()],
+        launchOptions: {
+          dropPendingUpdates: true,
+          polling: { timeout: 5 },
+        },
       }),
     }),
     BotModule,
