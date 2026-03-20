@@ -5,6 +5,7 @@ import { mainMenuVipKeyboard, mainMenuStandardKeyboard } from '../../common/keyb
 import { GeminiService } from '../../gemini/gemini.service';
 import { AdminService } from '../../admin/admin.service';
 import { BotService } from '../../bot/bot.service';
+import { FollowUpService } from '../../follow-up/follow-up.service';
 
 @Scene('onboarding')
 export class OnboardingScene {
@@ -12,6 +13,7 @@ export class OnboardingScene {
     private geminiService: GeminiService,
     private adminService: AdminService,
     private botService: BotService,
+    private followUpService: FollowUpService,
   ) {}
 
   @Command('start')
@@ -70,9 +72,14 @@ export class OnboardingScene {
       const recommendation = await this.geminiService.generateDepositRecommendation(
         amount,
         this.botService.getDisplayName(ctx),
+        ctx.session.isVip,
       );
       const keyboard = ctx.session.isVip ? mainMenuVipKeyboard() : mainMenuStandardKeyboard();
       await this.botService.sendWithKeyboard(ctx, recommendation, keyboard);
+
+      if (!ctx.session.isVip) {
+        this.followUpService.addUser(ctx.from!.id);
+      }
       return;
     }
 

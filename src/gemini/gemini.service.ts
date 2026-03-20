@@ -97,8 +97,8 @@ Briefly acknowledge what the user said (1 sentence), then guide them to use the 
    * Generate deposit recommendation text based on user's profit target.
    * Logic: recommend within their budget, show what they can earn.
    */
-  async generateDepositRecommendation(profitTarget: number, userName?: string): Promise<string> {
-    const templateText = this.getDepositTemplate(profitTarget);
+  async generateDepositRecommendation(profitTarget: number, userName?: string, isVip?: boolean): Promise<string> {
+    const templateText = this.getDepositTemplate(profitTarget, isVip);
 
     if (!this.model) {
       return templateText;
@@ -123,7 +123,8 @@ RULES:
   SIGNALS -> Follow and you can make unlimited money by yourself, learn Trading - A best High Income Skill in Century
 - Keep it under 6 sentences total
 - Be natural and conversational
-- NEVER use markdown formatting (no **, no *, no #, no backticks). Use plain text only.`;
+- NEVER use markdown formatting (no **, no *, no #, no backticks). Use plain text only.
+${isVip ? '- The user is a VIP (capital over $5,000). At the end of your response, add: "With capital over $5,000, you qualify for VIP support! Tap VIP Support below for personalized 1-on-1 assistance."' : ''}`;
 
       const result = await this.model.generateContent(prompt);
       return result.response.text() || templateText;
@@ -193,18 +194,23 @@ User "${userName || 'trader'}" asks: "${userMessage}"`;
   }
 
   /** Fallback template for deposit recommendation */
-  private getDepositTemplate(profitTarget: number): string {
+  private getDepositTemplate(profitTarget: number, isVip?: boolean): string {
     // Calculate recommended deposit (profit = 50-80% of deposit)
     const minDeposit = Math.round(profitTarget / 0.8);
     const maxDeposit = Math.round(profitTarget / 0.5);
     const recommended = Math.min(profitTarget, maxDeposit);
 
-    return `With your target of $${profitTarget.toLocaleString()}/month, we recommend starting with a deposit around $${minDeposit.toLocaleString()} - $${recommended.toLocaleString()}. With CopyTrading, you can generate 50-80% monthly returns on your investment.
+    const base = `With your target of $${profitTarget.toLocaleString()}/month, we recommend starting with a deposit around $${minDeposit.toLocaleString()} - $${recommended.toLocaleString()}. With CopyTrading, you can generate 50-80% monthly returns on your investment.
 
 So what services you wanna do with us SIGNALS or CopyTrading?
 
 CopyTrading -> Generate 50-80% Monthly
 
 SIGNALS -> Follow and you can make unlimited money by yourself, learn Trading - A best High Income Skill in Century`;
+
+    if (isVip) {
+      return base + '\n\nWith capital over $5,000, you qualify for VIP support! Tap VIP Support below for personalized 1-on-1 assistance.';
+    }
+    return base;
   }
 }
