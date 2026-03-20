@@ -6,6 +6,7 @@ import { GeminiService } from '../../gemini/gemini.service';
 import { AdminService } from '../../admin/admin.service';
 import { BotService } from '../../bot/bot.service';
 import { FollowUpService } from '../../follow-up/follow-up.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Scene('onboarding')
 export class OnboardingScene {
@@ -14,6 +15,7 @@ export class OnboardingScene {
     private adminService: AdminService,
     private botService: BotService,
     private followUpService: FollowUpService,
+    private prisma: PrismaService,
   ) {}
 
   @Command('start')
@@ -77,8 +79,18 @@ export class OnboardingScene {
       const keyboard = ctx.session.isVip ? mainMenuVipKeyboard() : mainMenuStandardKeyboard();
       await this.botService.sendWithKeyboard(ctx, recommendation, keyboard);
 
+      // Persist profitTarget and isVip to User record
+      if (ctx.from) {
+        await this.prisma.user.update({
+          where: { id: BigInt(ctx.from.id) },
+          data: { profitTarget: amount, isVip: ctx.session.isVip ?? false },
+        }).catch(() => {
+          // User may not exist yet (e.g. session resumed without /start)
+        });
+      }
+
       if (!ctx.session.isVip) {
-        this.followUpService.addUser(ctx.from!.id);
+        await this.followUpService.addUser(ctx.from!.id);
       }
       return;
     }

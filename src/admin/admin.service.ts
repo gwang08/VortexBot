@@ -2,51 +2,39 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
-import * as fs from 'fs';
-import * as path from 'path';
 import type { BotContext } from '../common/interfaces/session.interface';
 import { GoogleSheetsService } from '../google-sheets/google-sheets.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
   private readonly adminChatId: string;
-  private readonly linksFilePath: string;
 
   constructor(
     @InjectBot() private bot: Telegraf<BotContext>,
     private configService: ConfigService,
     private googleSheetsService: GoogleSheetsService,
+    private prisma: PrismaService,
   ) {
     this.adminChatId = this.configService.get<string>('ADMIN_CHAT_ID') ?? '';
-    this.linksFilePath = path.join(process.cwd(), 'tracking-links.json');
   }
 
   /** Check if source already exists */
-  hasTrackingLink(source: string): boolean {
-    const links = this.loadTrackingLinks();
-    return links.some((l) => l.source === source);
+  async hasTrackingLink(source: string): Promise<boolean> {
+    const link = await this.prisma.trackingLink.findUnique({ where: { source } });
+    return link !== null;
   }
 
   /** Save a new tracking link */
-  saveTrackingLink(source: string): void {
-    const links = this.loadTrackingLinks();
-    links.push({ source, createdAt: new Date().toISOString() });
-    fs.writeFileSync(this.linksFilePath, JSON.stringify(links, null, 2));
+  async saveTrackingLink(source: string): Promise<void> {
+    await this.prisma.trackingLink.create({ data: { source } });
   }
 
-  /** Get all tracking links */
-  getTrackingLinks(): { source: string; createdAt: string }[] {
-    return this.loadTrackingLinks();
-  }
-
-  private loadTrackingLinks(): { source: string; createdAt: string }[] {
-    try {
-      if (fs.existsSync(this.linksFilePath)) {
-        return JSON.parse(fs.readFileSync(this.linksFilePath, 'utf-8'));
-      }
-    } catch {}
-    return [];
+  /** Get all tracking links ordered by newest first */
+  async getTrackingLinks(): Promise<{ source: string; createdAt: string }[]> {
+    const links = await this.prisma.trackingLink.findMany({ orderBy: { createdAt: 'desc' } });
+    return links.map((l) => ({ source: l.source, createdAt: l.createdAt.toISOString() }));
   }
 
   /** Check if a message is from the admin */
