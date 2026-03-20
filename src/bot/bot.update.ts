@@ -57,12 +57,12 @@ export class BotUpdate {
       return;
     }
 
-    // Check if user is in an active scene - let scene handle it
-    if (ctx.session?.currentStep || ctx.session?.awaitingEmail || ctx.session?.awaitingProfitTarget) {
+    // User is actively inputting text (email/profit) → let scene handle it
+    if (ctx.session?.awaitingEmail || ctx.session?.awaitingProfitTarget) {
       return next();
     }
 
-    // User free-text (not in scene) → forward to admin
+    // All other free-text (in scene or not) → forward to admin
     const displayName = this.botService.getDisplayName(ctx);
     await this.adminService.forwardUserMessage(ctx.from!.id, displayName, message);
     await ctx.reply('✅ Your message has been sent to admin. Please wait for a response!');
