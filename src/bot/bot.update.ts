@@ -1,14 +1,22 @@
-import { Update, Start, Use, Ctx } from 'nestjs-telegraf';
+import { Update, Start, Use, Ctx, Command } from 'nestjs-telegraf';
 import type { BotContext } from '../common/interfaces/session.interface';
 import { BotService } from './bot.service';
 import { AdminService } from '../admin/admin.service';
+import { GoogleSheetsService } from '../google-sheets/google-sheets.service';
+import { ConfigService } from '@nestjs/config';
 
 @Update()
 export class BotUpdate {
+  private readonly botUsername: string;
+
   constructor(
     private botService: BotService,
     private adminService: AdminService,
-  ) {}
+    private googleSheetsService: GoogleSheetsService,
+    private configService: ConfigService,
+  ) {
+    this.botUsername = '';
+  }
 
   /**
    * Middleware runs BEFORE scenes - intercepts admin replies
@@ -29,6 +37,18 @@ export class BotUpdate {
     // Let /start and other commands pass through
     if (message.startsWith('/')) {
       return callNext();
+    }
+
+    // Admin typing source name for /newlink
+    if (this.adminService.isAdmin(chatId) && ctx.session?.awaitingLinkSource) {
+      ctx.session.awaitingLinkSource = false;
+      const source = message.replace(/[^a-zA-Z0-9_-]/g, '');
+      if (!source) {
+        await ctx.reply('⚠️ Invalid source name. Use only letters, numbers, _ and -');
+        return;
+      }
+      await this.sendTrackingLink(ctx, source);
+      return;
     }
 
     // Admin replying to a forwarded user message
@@ -83,6 +103,48 @@ export class BotUpdate {
     ctx.session.awaitingProfitTarget = false;
     ctx.session.currentStep = undefined;
 
+    // Extract deep link source from /start ref_<source>
+    const startPayload = (ctx.message as any)?.text?.split(' ')[1] ?? '';
+    const source = startPayload.startsWith('ref_') ? startPayload.slice(4) : '';
+
+    if (source) {
+      const displayName = this.botService.getDisplayName(ctx);
+      await this.googleSheetsService.appendRow({
+        userId: ctx.from!.id,
+        username: displayName,
+        flow: 'General',
+        action: 'Start',
+        source,
+      });
+    }
+
     await ctx.scene.enter('onboarding');
+  }
+
+  /** Admin command to generate tracking links */
+  @Command('newlink')
+  async onNewLink(@Ctx() ctx: BotContext) {
+    const chatId = ctx.chat?.id;
+    if (!chatId || !this.adminService.isAdmin(chatId)) return;
+
+    const args = (ctx.message as any)?.text?.split(' ').slice(1).join('_');
+
+    if (!args) {
+      ctx.session.awaitingLinkSource = true;
+      await ctx.reply('📎 Enter a source name for the tracking link (e.g. forex_vn, gold_trading, fb_ads):');
+      return;
+    }
+
+    const source = args.replace(/[^a-zA-Z0-9_-]/g, '');
+    await this.sendTrackingLink(ctx, source);
+  }
+
+  /** Generate and send the tracking link to admin */
+  private async sendTrackingLink(ctx: BotContext, source: string): Promise<void> {
+    const botInfo = await ctx.telegram.getMe();
+    const link = `https://t.me/${botInfo.username}?start=ref_${source}`;
+    await ctx.reply(
+      `✅ Tracking link created!\n\n🔗 ${link}\n\n📊 Source: ${source}\n\nShare this link with the ad channel.\nWhen users click it, the source will be tracked automatically.`,
+    );
   }
 }

@@ -7,6 +7,7 @@ export interface BotSession extends Scenes.WizardSession {
   currentStep?: string;
   awaitingEmail?: boolean;
   awaitingProfitTarget?: boolean;
+  awaitingLinkSource?: boolean;
 }
 
 export interface BotContext extends Context {
