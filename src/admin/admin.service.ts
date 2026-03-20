@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { BotContext } from '../common/interfaces/session.interface';
 import { GoogleSheetsService } from '../google-sheets/google-sheets.service';
 
@@ -9,6 +11,7 @@ import { GoogleSheetsService } from '../google-sheets/google-sheets.service';
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
   private readonly adminChatId: string;
+  private readonly linksFilePath: string;
 
   constructor(
     @InjectBot() private bot: Telegraf<BotContext>,
@@ -16,6 +19,34 @@ export class AdminService {
     private googleSheetsService: GoogleSheetsService,
   ) {
     this.adminChatId = this.configService.get<string>('ADMIN_CHAT_ID') ?? '';
+    this.linksFilePath = path.join(process.cwd(), 'tracking-links.json');
+  }
+
+  /** Check if source already exists */
+  hasTrackingLink(source: string): boolean {
+    const links = this.loadTrackingLinks();
+    return links.some((l) => l.source === source);
+  }
+
+  /** Save a new tracking link */
+  saveTrackingLink(source: string): void {
+    const links = this.loadTrackingLinks();
+    links.push({ source, createdAt: new Date().toISOString() });
+    fs.writeFileSync(this.linksFilePath, JSON.stringify(links, null, 2));
+  }
+
+  /** Get all tracking links */
+  getTrackingLinks(): { source: string; createdAt: string }[] {
+    return this.loadTrackingLinks();
+  }
+
+  private loadTrackingLinks(): { source: string; createdAt: string }[] {
+    try {
+      if (fs.existsSync(this.linksFilePath)) {
+        return JSON.parse(fs.readFileSync(this.linksFilePath, 'utf-8'));
+      }
+    } catch {}
+    return [];
   }
 
   /** Check if a message is from the admin */

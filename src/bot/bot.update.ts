@@ -48,7 +48,13 @@ export class BotUpdate {
         return;
       }
       const source = args.replace(/[^a-zA-Z0-9_-]/g, '');
-      await this.sendTrackingLink(ctx, source);
+      await this.createTrackingLink(ctx, source);
+      return;
+    }
+
+    // Handle /checklinks for admin
+    if (message.startsWith('/checklinks') && this.adminService.isAdmin(chatId)) {
+      await this.showTrackingLinks(ctx);
       return;
     }
 
@@ -65,7 +71,7 @@ export class BotUpdate {
         await ctx.reply('⚠️ Invalid source name. Use only letters, numbers, _ and -');
         return;
       }
-      await this.sendTrackingLink(ctx, source);
+      await this.createTrackingLink(ctx, source);
       return;
     }
 
@@ -139,30 +145,38 @@ export class BotUpdate {
     await ctx.scene.enter('onboarding');
   }
 
-  /** Admin command to generate tracking links */
-  @Command('newlink')
-  async onNewLink(@Ctx() ctx: BotContext) {
-    const chatId = ctx.chat?.id;
-    if (!chatId || !this.adminService.isAdmin(chatId)) return;
-
-    const args = (ctx.message as any)?.text?.split(' ').slice(1).join('_');
-
-    if (!args) {
-      ctx.session.awaitingLinkSource = true;
-      await ctx.reply('📎 Enter a source name for the tracking link (e.g. forex_vn, gold_trading, fb_ads):');
+  /** Create tracking link with duplicate check */
+  private async createTrackingLink(ctx: BotContext, source: string): Promise<void> {
+    if (this.adminService.hasTrackingLink(source)) {
+      const botInfo = await ctx.telegram.getMe();
+      const link = `https://t.me/${botInfo.username}?start=ref_${source}`;
+      await ctx.reply(`⚠️ Source "${source}" already exists!\n\n🔗 ${link}\n\nPlease use a different source name.`);
       return;
     }
 
-    const source = args.replace(/[^a-zA-Z0-9_-]/g, '');
-    await this.sendTrackingLink(ctx, source);
-  }
-
-  /** Generate and send the tracking link to admin */
-  private async sendTrackingLink(ctx: BotContext, source: string): Promise<void> {
+    this.adminService.saveTrackingLink(source);
     const botInfo = await ctx.telegram.getMe();
     const link = `https://t.me/${botInfo.username}?start=ref_${source}`;
     await ctx.reply(
       `✅ Tracking link created!\n\n🔗 ${link}\n\n📊 Source: ${source}\n\nShare this link with the ad channel.\nWhen users click it, the source will be tracked automatically.`,
     );
+  }
+
+  /** Show all created tracking links */
+  private async showTrackingLinks(ctx: BotContext): Promise<void> {
+    const links = this.adminService.getTrackingLinks();
+    if (links.length === 0) {
+      await ctx.reply('📭 No tracking links created yet.\n\nUse /newlink <source> to create one.');
+      return;
+    }
+
+    const botInfo = await ctx.telegram.getMe();
+    const lines = links.map((l, i) => {
+      const link = `https://t.me/${botInfo.username}?start=ref_${l.source}`;
+      const date = new Date(l.createdAt).toLocaleDateString('en-US');
+      return `${i + 1}. 📊 ${l.source}\n   🔗 ${link}\n   📅 ${date}`;
+    });
+
+    await ctx.reply(`📋 Tracking Links (${links.length}):\n\n${lines.join('\n\n')}`);
   }
 }
