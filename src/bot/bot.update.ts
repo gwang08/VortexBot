@@ -34,7 +34,25 @@ export class BotUpdate {
       return callNext();
     }
 
-    // Let /start and other commands pass through
+    // Handle /start directly since next() may not work
+    if (message.startsWith('/start')) {
+      return this.onStart(ctx);
+    }
+
+    // Handle /newlink for admin
+    if (message.startsWith('/newlink') && this.adminService.isAdmin(chatId)) {
+      const args = message.split(' ').slice(1).join('_');
+      if (!args) {
+        ctx.session.awaitingLinkSource = true;
+        await ctx.reply('📎 Enter a source name for the tracking link (e.g. forex_vn, gold_trading, fb_ads):');
+        return;
+      }
+      const source = args.replace(/[^a-zA-Z0-9_-]/g, '');
+      await this.sendTrackingLink(ctx, source);
+      return;
+    }
+
+    // Other commands → pass through
     if (message.startsWith('/')) {
       return callNext();
     }
