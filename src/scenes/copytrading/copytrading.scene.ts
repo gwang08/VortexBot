@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { Scene, SceneEnter, Action, On, Command } from 'nestjs-telegraf';
 import type { BotContext } from '../../common/interfaces/session.interface';
 import {
@@ -9,9 +10,11 @@ import {
 import {
   ctStep1Keyboard,
   ctIbKeyboard,
+  ctAccountKeyboard,
   ctStep2Keyboard,
   ctStep3Keyboard,
   ctStep4Keyboard,
+  ctFinalKeyboard,
 } from '../../common/keyboards';
 import {
   ctIbMobileMedia,
@@ -23,12 +26,16 @@ import {
 } from '../../common/media';
 import { AdminService } from '../../admin/admin.service';
 import { BotService } from '../../bot/bot.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Scene('copytrading')
 export class CopyTradingScene {
+  private readonly logger = new Logger(CopyTradingScene.name);
+
   constructor(
     private adminService: AdminService,
     private botService: BotService,
+    private prisma: PrismaService,
   ) {}
 
   // Allow switching to Signals from old button clicks
@@ -49,12 +56,13 @@ export class CopyTradingScene {
   @Command('start')
   async onRestart(ctx: BotContext) {
     await ctx.scene.leave();
-    ctx.session.profitTarget = undefined;
+    ctx.session.capitalRange = undefined;
     ctx.session.selectedFlow = undefined;
     ctx.session.email = undefined;
     ctx.session.awaitingEmail = false;
-    ctx.session.awaitingProfitTarget = false;
+    ctx.session.awaitingAccount = false;
     ctx.session.currentStep = undefined;
+    ctx.session.tier = undefined;
     await ctx.scene.enter('onboarding');
   }
 
@@ -62,8 +70,20 @@ export class CopyTradingScene {
   async onEnter(ctx: BotContext) {
     ctx.session.currentStep = 'copytrading:step1';
     ctx.session.awaitingEmail = false;
+    ctx.session.awaitingAccount = false;
 
     await this.botService.sendWithKeyboard(ctx, `STEP 1:\n\n${ACCOUNT_CREATION_TEXT}`, ctStep1Keyboard());
+  }
+
+  // "I Registered" button - new status tracking
+  @Action(CALLBACKS.ctRegistered)
+  async onRegistered(ctx: BotContext) {
+    await ctx.answerCbQuery();
+    await this.prisma.user.update({
+      where: { id: BigInt(ctx.from!.id) },
+      data: { status: 'registered', lastStep: 'ct_registered' },
+    }).catch((e) => this.logger.warn(`User update failed: ${e.message}`));
+    await this.askForTradingAccount(ctx);
   }
 
   @Action(CALLBACKS.alreadyHavePuPrime)
@@ -71,6 +91,12 @@ export class CopyTradingScene {
     await ctx.answerCbQuery();
     ctx.session.currentStep = 'copytrading:ib_transfer';
     ctx.session.awaitingEmail = true;
+
+    // Update status to registered
+    await this.prisma.user.update({
+      where: { id: BigInt(ctx.from!.id) },
+      data: { status: 'registered', lastStep: 'ct_ib_transfer' },
+    }).catch((e) => this.logger.warn(`User update failed: ${e.message}`));
 
     try {
       await this.botService.sendMediaGroup(ctx, ctIbMobileMedia());
@@ -87,9 +113,29 @@ export class CopyTradingScene {
     await this.botService.sendWithKeyboard(ctx, `My IB Code: ${IB_CODE}\n\nAfter transfer code done, send me your email you use for create account so I can push it for you thanks`, ctIbKeyboard());
   }
 
+  // Trading account collection step
+  private async askForTradingAccount(ctx: BotContext) {
+    ctx.session.currentStep = 'copytrading:account_collection';
+    ctx.session.awaitingAccount = true;
+    const text = `Send your trading account number for faster support.\n\nExample: ACC: 12345678`;
+    await ctx.reply(text, ctAccountKeyboard());
+  }
+
+  @Action(CALLBACKS.ctSkipAccount)
+  async onSkipAccount(ctx: BotContext) {
+    await ctx.answerCbQuery();
+    ctx.session.awaitingAccount = false;
+    await this.showStep2(ctx);
+  }
+
+  // Step 2: Open CT account
   @Action(CALLBACKS.ctNextStep2)
   async onStep2(ctx: BotContext) {
     await ctx.answerCbQuery();
+    await this.showStep2(ctx);
+  }
+
+  private async showStep2(ctx: BotContext) {
     ctx.session.currentStep = 'copytrading:step2';
 
     try {
@@ -101,6 +147,7 @@ export class CopyTradingScene {
     await this.botService.sendWithKeyboard(ctx, `STEP 2:\n\n2.1 Download PU PRIME App\n\n2.2 Open the PU Prime app and log in. Select "Account ID" to view existing accounts.\n\n2.3 Select "New Live Account" → Platform: "Copy Trading", Type: "Standard", Currency: "USD" → Accept terms → Submit.\n\n2.4 Select "Agree" and contact Support to expedite approval. Confirmation email within one business day.\n\nAre you ready for next step?`, ctStep2Keyboard());
   }
 
+  // Step 3: Deposit (with confirm button)
   @Action(CALLBACKS.ctNextStep3)
   async onStep3(ctx: BotContext) {
     await ctx.answerCbQuery();
@@ -115,9 +162,36 @@ export class CopyTradingScene {
     await this.botService.sendWithKeyboard(ctx, `STEP 3:\n\nTransfer Funds to Copy Trading Account\n\nAfter your Copy Trading account is approved, go to your Live account and transfer funds to the Copy Trading account.\n\n${DEPOSIT_VIDEO_GUIDE_TEXT}\n\nAre you ready for next step?`, ctStep3Keyboard());
   }
 
+  // "I Deposited" button
+  @Action(CALLBACKS.ctDeposited)
+  async onDeposited(ctx: BotContext) {
+    await ctx.answerCbQuery();
+    const userId = BigInt(ctx.from!.id);
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { status: 'deposit_claimed', lastStep: 'ct_deposit_claimed' },
+    });
+
+    await this.adminService.notifyDepositClaimed(
+      ctx.from!.id,
+      ctx.from?.username,
+      user?.tradingAccount,
+    );
+
+    await ctx.reply('✅ Great! Moving to next step...');
+    await this.showStep4(ctx);
+  }
+
+  // Step 4: Find master
   @Action(CALLBACKS.ctNextStep4)
   async onStep4(ctx: BotContext) {
     await ctx.answerCbQuery();
+    await this.showStep4(ctx);
+  }
+
+  private async showStep4(ctx: BotContext) {
     ctx.session.currentStep = 'copytrading:step4';
 
     try {
@@ -129,6 +203,7 @@ export class CopyTradingScene {
     await this.botService.sendWithKeyboard(ctx, `STEP 4:\n\nYou will see Master "Red Bull X" & "BMR Scalper" in Top Highest Annual Return. Select "View" to see details.\n\nReturn YTD: 213753%\nCopiers: 1859\nProfit Sharing: 30%\n\nAre you ready for the final step?`, ctStep4Keyboard());
   }
 
+  // Final step: Configure copy (with confirm button)
   @Action(CALLBACKS.ctFinalStep)
   async onFinalStep(ctx: BotContext) {
     await ctx.answerCbQuery();
@@ -140,7 +215,20 @@ export class CopyTradingScene {
       await ctx.reply('(Guide images for Final Step)');
     }
 
-    await ctx.reply(`FINAL STEP:\n\nConfigure and Start Copying\n\nCopy Mode: "Equivalent Used Margin"\nInvestment: Enter your amount\nRisk Management: 95% (recommended)\nLot Rounding: OFF\n\nClick Submit to start copy trading.\n\n🎉 Congratulations! You're all set. If you need any help, feel free to contact our admin.`, { link_preview_options: { is_disabled: true } });
+    await ctx.reply(`FINAL STEP:\n\nConfigure and Start Copying\n\nCopy Mode: "Equivalent Used Margin"\nInvestment: Enter your amount\nRisk Management: 95% (recommended)\nLot Rounding: OFF\n\nClick Submit to start copy trading.`, ctFinalKeyboard());
+  }
+
+  // "I Enabled CopyTrade" button
+  @Action(CALLBACKS.ctCopyEnabled)
+  async onCopyEnabled(ctx: BotContext) {
+    await ctx.answerCbQuery();
+    await this.prisma.user.update({
+      where: { id: BigInt(ctx.from!.id) },
+      data: { status: 'copy_claimed', lastStep: 'ct_copy_enabled' },
+    });
+
+    await ctx.reply('🔥 You are live now!\n\nFollow daily results in our channel.\nSupport: @Vitaperry');
+    await ctx.scene.leave();
   }
 
   @Action(CALLBACKS.contactAdmin)
@@ -153,8 +241,27 @@ export class CopyTradingScene {
   @On('text')
   async onText(ctx: BotContext) {
     const message = (ctx.message as any)?.text;
-    if (!message) return;
+    if (!message || !ctx.from) return;
 
+    // Handle trading account input
+    if (ctx.session.awaitingAccount) {
+      const accMatch = message.match(/(?:ACC[:\s]*)?(\d{6,10})/i);
+      if (accMatch) {
+        const account = accMatch[1];
+        await this.prisma.user.update({
+          where: { id: BigInt(ctx.from!.id) },
+          data: { tradingAccount: account, status: 'account_submitted', lastStep: 'account_submitted' },
+        });
+        ctx.session.awaitingAccount = false;
+
+        await this.adminService.notifyAccountSubmitted(ctx.from!.id, ctx.from?.username, account);
+        await ctx.reply(`✅ Account ${account} saved. Let's continue!`);
+        await this.showStep2(ctx);
+        return;
+      }
+    }
+
+    // Handle email input for IB transfer
     if (ctx.session.awaitingEmail) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const emailMatch = message.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
@@ -176,7 +283,7 @@ export class CopyTradingScene {
       }
     }
 
-    // User typed free text at button step → forward to admin
+    // User typed free text at button step -> forward to admin
     const displayName = this.botService.getDisplayName(ctx);
     await this.adminService.forwardUserMessage(ctx.from!.id, displayName, message);
     await ctx.reply('✅ Your message has been sent to admin. Please wait for a response!');

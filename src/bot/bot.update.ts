@@ -21,8 +21,8 @@ export class BotUpdate {
   }
 
   /**
-   * Middleware runs BEFORE scenes - intercepts admin replies
-   * and user free-text messages before scene handlers catch them.
+   * Middleware runs BEFORE scenes - intercepts admin commands,
+   * admin replies, ACC input, and user free-text messages.
    */
   @Use()
   async middleware(@Ctx() ctx: BotContext, next: () => Promise<void>) {
@@ -41,26 +41,63 @@ export class BotUpdate {
       return this.onStart(ctx);
     }
 
-    // Handle /newlink for admin
-    if (message.startsWith('/newlink') && this.adminService.isAdmin(chatId)) {
-      const args = message.split(' ').slice(1).join('_');
-      if (!args) {
-        ctx.session.awaitingLinkSource = true;
-        await ctx.reply('📎 Enter a source name for the tracking link (e.g. forex_vn, gold_trading, fb_ads):');
+    // --- Admin commands ---
+    if (this.adminService.isAdmin(chatId)) {
+      // /help
+      if (message === '/help') {
+        await this.adminService.sendHelpMessage(ctx);
         return;
       }
-      const source = args.replace(/[^a-zA-Z0-9_-]/g, '');
-      await this.createTrackingLink(ctx, source);
-      return;
+
+      // /status <tg_id>
+      if (message.startsWith('/status')) {
+        const parts = message.split(' ');
+        if (parts.length < 2) {
+          await ctx.reply('Usage: /status <telegram_id>');
+          return;
+        }
+        await this.adminService.sendUserStatus(ctx, parts[1]);
+        return;
+      }
+
+      // /stats
+      if (message === '/stats') {
+        await this.adminService.sendStats(ctx);
+        return;
+      }
+
+      // /verify <account>
+      if (message.startsWith('/verify')) {
+        const parts = message.split(' ');
+        if (parts.length < 2) {
+          await ctx.reply('Usage: /verify <trading_account>');
+          return;
+        }
+        await this.adminService.verifyAccount(ctx, parts[1]);
+        return;
+      }
+
+      // /newlink
+      if (message.startsWith('/newlink')) {
+        const args = message.split(' ').slice(1).join('_');
+        if (!args) {
+          ctx.session.awaitingLinkSource = true;
+          await ctx.reply('📎 Enter a source name for the tracking link (e.g. forex_vn, gold_trading, fb_ads):');
+          return;
+        }
+        const source = args.replace(/[^a-zA-Z0-9_-]/g, '');
+        await this.createTrackingLink(ctx, source);
+        return;
+      }
+
+      // /checklinks
+      if (message.startsWith('/checklinks')) {
+        await this.showTrackingLinks(ctx);
+        return;
+      }
     }
 
-    // Handle /checklinks for admin
-    if (message.startsWith('/checklinks') && this.adminService.isAdmin(chatId)) {
-      await this.showTrackingLinks(ctx);
-      return;
-    }
-
-    // Other commands → pass through
+    // Other commands -> pass through
     if (message.startsWith('/')) {
       return callNext();
     }
@@ -96,7 +133,9 @@ export class BotUpdate {
       return;
     }
 
-    // User replying to a bot message → forward to admin as live chat
+    // --- User-side middleware ---
+
+    // User replying to a bot message -> forward to admin as live chat
     const replyToBot = (ctx.message as any)?.reply_to_message;
     if (replyToBot && replyToBot.from?.is_bot) {
       const displayName = this.botService.getDisplayName(ctx);
@@ -105,14 +144,15 @@ export class BotUpdate {
       return;
     }
 
-    // User is actively inputting text (email/profit) or in AI chat → let scene handle it
-    if (ctx.session?.awaitingEmail || ctx.session?.awaitingProfitTarget || ctx.session?.inAiChat) {
+    // User is actively inputting text (email/account) or in AI chat -> let scene handle it
+    if (ctx.session?.awaitingEmail || ctx.session?.awaitingAccount || ctx.session?.inAiChat) {
       return callNext();
     }
 
-    // All other free-text (in scene or not) → forward to admin
+    // All other free-text (in scene or not) -> forward to admin
+    if (!ctx.from) return;
     const displayName = this.botService.getDisplayName(ctx);
-    await this.adminService.forwardUserMessage(ctx.from!.id, displayName, message);
+    await this.adminService.forwardUserMessage(ctx.from.id, displayName, message);
     await ctx.reply('✅ Your message has been sent to admin. Please wait for a response!');
   }
 
@@ -122,14 +162,15 @@ export class BotUpdate {
       await ctx.scene.leave();
     } catch {}
 
-    ctx.session.profitTarget = undefined;
+    ctx.session.capitalRange = undefined;
     ctx.session.selectedFlow = undefined;
     ctx.session.email = undefined;
     ctx.session.awaitingEmail = false;
-    ctx.session.awaitingProfitTarget = false;
+    ctx.session.awaitingAccount = false;
     ctx.session.currentStep = undefined;
     ctx.session.isVip = undefined;
     ctx.session.inAiChat = false;
+    ctx.session.tier = undefined;
 
     // Extract deep link source from /start ref_<source>
     const startPayload = (ctx.message as any)?.text?.split(' ')[1] ?? '';

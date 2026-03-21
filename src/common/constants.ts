@@ -7,6 +7,14 @@ export const PUPRIME_SIGNUP_LINK =
 // IB Code for existing PuPrime users
 export const IB_CODE = 'bmrmaster';
 
+// Bot Trading website link (EN repo)
+export const BOT_TRADING_URL = 'https://bmrcopytrade.net/';
+
+// Follow-up cooldown schedule (hours between each follow-up)
+export const FOLLOWUP_SCHEDULE_HOURS = [6, 24, 48, 72, 72, 72, 72];
+export const MAX_FOLLOWUP_COUNT = 7;
+export const VIP_MAX_FOLLOWUP_COUNT = 2;
+
 // Video guide URLs
 export const VIDEO_GUIDES = {
   openAccount: 'https://youtu.be/VUeNnUB3H-o',
@@ -86,18 +94,39 @@ export const IMAGES = {
 
 // Callback data keys for inline buttons
 export const CALLBACKS = {
+  // Menu selection
   copytrading: 'select_copytrading',
   signals: 'select_signals',
   contactAdmin: 'contact_admin',
   vipSupport: 'vip_support',
   aiSupport: 'ai_support',
+
+  // CopyTrading steps
   alreadyHavePuPrime: 'ct_already_puprime',
   ctNextStep2: 'ct_next_step2',
   ctNextStep3: 'ct_next_step3',
   ctNextStep4: 'ct_next_step4',
   ctFinalStep: 'ct_final_step',
+
+  // Signals steps
   sigCreatedAccount: 'sig_created_account',
   sigAlreadyHaveAccount: 'sig_already_have_account',
   sigDepositedDone: 'sig_deposited_done',
   sigVideoGuide: 'sig_video_guide',
+
+  // Capital selection buttons
+  capital100_500: 'capital_100_500',
+  capital500_2000: 'capital_500_2000',
+  capital2000_5000: 'capital_2000_5000',
+  capital5000_10000: 'capital_5000_10000',
+  capital10000plus: 'capital_10000_plus',
+
+  // Status confirmation buttons
+  ctRegistered: 'ct_registered',
+  ctSkipAccount: 'ct_skip_account',
+  ctDeposited: 'ct_deposited',
+  ctCopyEnabled: 'ct_copy_enabled',
+  sigRegistered: 'sig_registered',
+  sigSkipAccount: 'sig_skip_account',
+  sigDeposited: 'sig_deposited',
 };

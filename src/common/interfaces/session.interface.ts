@@ -1,15 +1,16 @@
 import { Context, Scenes } from 'telegraf';
 
 export interface BotSession extends Scenes.WizardSession {
-  profitTarget?: number;
+  capitalRange?: string;
   selectedFlow?: 'copytrading' | 'signals' | 'contact';
   email?: string;
   currentStep?: string;
   awaitingEmail?: boolean;
-  awaitingProfitTarget?: boolean;
+  awaitingAccount?: boolean;
   awaitingLinkSource?: boolean;
   isVip?: boolean;
   inAiChat?: boolean;
+  tier?: string;
 }
 
 export interface BotContext extends Context {

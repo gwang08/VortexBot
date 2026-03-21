@@ -5,10 +5,9 @@ import { SignalsScene } from './signals/signals.scene';
 import { GeminiModule } from '../gemini/gemini.module';
 import { AdminModule } from '../admin/admin.module';
 import { BotService } from '../bot/bot.service';
-import { FollowUpModule } from '../follow-up/follow-up.module';
 
 @Module({
-  imports: [GeminiModule, AdminModule, FollowUpModule],
+  imports: [GeminiModule, AdminModule],
   providers: [OnboardingScene, CopyTradingScene, SignalsScene, BotService],
 })
 export class ScenesModule {}

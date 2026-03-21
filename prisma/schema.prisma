@@ -9,15 +9,26 @@ datasource db {
 
 /// User profile - tracks all Telegram users who interact with the bot
 model User {
-  id            BigInt    @id @map("telegram_id")
-  username      String?
-  firstName     String?   @map("first_name")
-  profitTarget  Float?    @map("profit_target")
-  isVip         Boolean   @default(false) @map("is_vip")
-  source        String?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  followUp      FollowUp?
+  id              BigInt    @id @map("telegram_id")
+  username        String?
+  firstName       String?   @map("first_name")
+  profitTarget    Float?    @map("profit_target")
+  isVip           Boolean   @default(false) @map("is_vip")
+  source          String?
+
+  // Status tracking fields
+  capitalRange    String?   @map("capital_range")
+  tier            String    @default("retail")
+  status          String    @default("new")
+  lastStep        String?   @map("last_step")
+  flow            String?
+  tradingAccount  String?   @map("trading_account")
+  accountVerified Boolean   @default(false) @map("account_verified")
+  followUpCount   Int       @default(0) @map("follow_up_count")
+  lastFollowUpAt  DateTime? @map("last_follow_up_at")
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   @@map("users")
 }
@@ -38,16 +49,4 @@ model TrackingLink {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("tracking_links")
-}
-
-/// Scheduled follow-up messages for non-VIP users
-model FollowUp {
-  id        Int      @id @default(autoincrement())
-  userId    BigInt   @unique @map("user_id")
-  user      User     @relation(fields: [userId], references: [id])
-  startedAt DateTime @default(now()) @map("started_at")
-  sent6h    Boolean  @default(false) @map("sent_6h")
-  sent24h   Boolean  @default(false) @map("sent_24h")
-
-  @@map("follow_ups")
 }
